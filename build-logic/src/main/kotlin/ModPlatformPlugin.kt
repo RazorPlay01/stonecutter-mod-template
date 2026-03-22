@@ -38,10 +38,17 @@ abstract class ModPlatformPlugin @Inject constructor() : Plugin<Project> {
 	override fun apply(project: Project) = with(project) {
 		val inferredLoader = project.buildFile.name.substringAfter('.').replace(".gradle.kts", "")
 		val inferredLoaderIsFabric = inferredLoader == "fabric"
+		val inferredLoaderIsForge = inferredLoader == "forge"
 
 		val extension = extensions.create("platform", ModPlatformExtension::class.java).apply {
 			loader.convention(inferredLoader)
-			jarTask.convention(if (inferredLoaderIsFabric) "remapJar" else "jar")
+			jarTask.convention(
+				when {
+					inferredLoaderIsFabric -> "remapJar"
+					inferredLoaderIsForge  -> "reobfJar"
+					else                   -> "jar"
+				}
+			)
 			sourcesJarTask.convention(if (inferredLoaderIsFabric) "remapSourcesJar" else "sourcesJar")
 		}
 
@@ -126,7 +133,14 @@ abstract class ModPlatformPlugin @Inject constructor() : Plugin<Project> {
 			dependsOn(tasks.named("stonecutterGenerate"))
 			dependsOn("kspKotlin")
 
+			val refmapLine = if (isForge) {
+							"\"refmap\": \"${modId}.mixins.refmap.json\","
+						} else {
+							""
+						}
+
 			filesMatching("*.mixins.json") { expand("java" to "JAVA_${requiredJava.majorVersion}") }
+			filesMatching("*.mixins.json") { expand("refmap" to refmapLine) }
 
 			var contributors = prop("mod.contributors")
 			var authors = prop("mod.authors")
