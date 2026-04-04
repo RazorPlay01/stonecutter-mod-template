@@ -33,6 +33,16 @@ stonecutter tasks {
 	}
 }
 
+tasks.register("runActiveClient") {
+	group = "stonecutter"
+	description = "Run client of the active Stonecutter version (always up-to-date)"
+
+	dependsOn(stonecutter.current!!.project + ":processResources")
+	dependsOn(stonecutter.current!!.project + ":classes")
+
+	finalizedBy(stonecutter.current!!.project + ":runClient")
+}
+
 stonecutter parameters {
 	constants.match(node.metadata.project.substringAfterLast('-'), "fabric", "neoforge", "forge")
 	filters.include("**/*.fsh", "**/*.vsh")
