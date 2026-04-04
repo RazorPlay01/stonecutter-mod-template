@@ -45,8 +45,8 @@ abstract class ModPlatformPlugin @Inject constructor() : Plugin<Project> {
 			jarTask.convention(
 				when {
 					inferredLoaderIsFabric -> "remapJar"
-					inferredLoaderIsForge  -> "reobfJar"
-					else                   -> "jar"
+					inferredLoaderIsForge -> "reobfJar"
+					else -> "jar"
 				}
 			)
 			sourcesJarTask.convention(if (inferredLoaderIsFabric) "remapSourcesJar" else "sourcesJar")
@@ -95,13 +95,26 @@ abstract class ModPlatformPlugin @Inject constructor() : Plugin<Project> {
 		)
 
 		if (isFabric) {
-			extension.dependencies { required("java") { versionRange = ">=${extension.requiredJava.get().majorVersion}" } }
+			extension.dependencies {
+				required("java") {
+					versionRange = ">=${extension.requiredJava.get().majorVersion}"
+				}
+			}
 		}
 
 		configureFletchingTable()
 		configureJarTask(modId, loader)
 		configureIdea()
-		configureProcessResources(isFabric, isNeoForge, isForge, modId, "$modVersion$channelTag", mcVersion, extension, extension.requiredJava.get())
+		configureProcessResources(
+			isFabric,
+			isNeoForge,
+			isForge,
+			modId,
+			"$modVersion$channelTag",
+			mcVersion,
+			extension,
+			extension.requiredJava.get()
+		)
 		configureJava(stonecutter, extension.requiredJava.get())
 		registerBuildAndCollectTask(extension, "$modVersion$channelTag")
 		configurePublishing(extension, loader, stonecutter, "$modVersion$channelTag", channelTag, version.toString())
@@ -134,14 +147,18 @@ abstract class ModPlatformPlugin @Inject constructor() : Plugin<Project> {
 			dependsOn(tasks.named("stonecutterGenerate"))
 			dependsOn("kspKotlin")
 
-			val refmapLine = if (isForge) {
-							"\"refmap\": \"${modId}.mixins.refmap.json\","
-						} else {
-							""
-						}
+			filesMatching("*.mixins.json") {
+				val refmapLine = if (isForge) {
+					"\"refmap\": \"${modId}.mixins.refmap.json\","
+				} else {
+					""
+				}
 
-			filesMatching("*.mixins.json") { expand("java" to "JAVA_${requiredJava.majorVersion}") }
-			filesMatching("*.mixins.json") { expand("refmap" to refmapLine) }
+				expand(
+					"java" to "JAVA_${requiredJava.majorVersion}",
+					"refmap" to refmapLine
+				)
+			}
 
 			var contributors = prop("mod.contributors")
 			var authors = prop("mod.authors")
@@ -300,7 +317,7 @@ abstract class ModPlatformPlugin @Inject constructor() : Plugin<Project> {
 			}
 
 			val isForge = loader == "forge"
-			val targetName = if(isForge) {
+			val targetName = if (isForge) {
 				"reobfJar"
 			} else {
 				ext.jarTask.get()
